@@ -157,5 +157,81 @@ namespace CreditCardApplications.Tests
 
 			Assert.Equal(ValidationMode.Detailed, mockValidator.Object.ValidationMode);
 		}
+
+		[Fact]
+		public void ValidateFrequentFlyerNumberForLowIncomeApplications()
+		{
+			var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+			mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+
+			var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+
+			var application = new CreditCardApplication();
+
+			sut.Evaluate(application);
+
+			//Did the CreditCardApplicationEvaluator call the IsValid method
+			mockValidator.Verify(x => x.IsValid(It.IsAny<string>()), "Frequent Flyer numbers should be validated");
+		}
+
+		[Fact]
+		public void NotValidateFrequentFlyerNumberForHighIncomeApplications()
+		{
+			var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+			mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+
+			var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+
+			var application = new CreditCardApplication { GrossAnnualIncome = 100_000 };
+
+			sut.Evaluate(application);
+
+			//Verifying a method was never called
+			mockValidator.Verify(x => x.IsValid(It.IsAny<string>()), Times.Never);
+		}
+
+		[Fact]
+		public void CheckLicenseKeyForLowIncomeApplications()
+		{
+			var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+			mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+
+			var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+
+			var application = new CreditCardApplication { GrossAnnualIncome = 99_000 };
+
+			sut.Evaluate(application);
+
+			//Verifying a Property Getter was Called
+			mockValidator.VerifyGet(x => x.ServiceInformation.License.LicenseKey, Times.Once);
+		}
+
+		[Fact]
+		public void SetDetailedLookupForOlderApplications()
+		{
+			var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+			mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+
+			var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+
+			var application = new CreditCardApplication { Age = 30 };
+
+			sut.Evaluate(application);
+
+			//Verifying a property setter was called
+			mockValidator.VerifySet(x => x.ValidationMode = ValidationMode.Detailed);
+
+			//Verify that the isValid method was called
+			//mockValidator.Verify(x => x.IsValid(null), Times.Once);
+
+			//There should be no other calls on the Moq object
+			//mockValidator.VerifyNoOtherCalls();
+
+			//However we know that other methods and calls were made
+		}
 	}
 }
